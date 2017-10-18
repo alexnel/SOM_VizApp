@@ -14,6 +14,9 @@ class SelfOrganizingMap {
     boolean hexagonalRectangular; //reduntant, used for convenience
     double U[][];
     double neuronPosition[][];
+    output out;
+    
+    SelfOrganizingMap(){}
     
     /*
     Generic constructor for a SOM network. The dimensionality/number of the inputs
@@ -29,6 +32,7 @@ class SelfOrganizingMap {
     */
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow,
                 boolean hexagonalLattice, double standardDeviation, Random randomGenerator) {                
+        
         L = features;
         this.neuronsPerColumn = neuronsPerColumn;
         this.neuronsPerRow = neuronsPerRow;
@@ -98,9 +102,10 @@ class SelfOrganizingMap {
     
     dataset.addSeries(series1);
         
-        
-        output s = new output(dataset);
-        s.setVisible(true);
+        out = new output(dataset);
+//        out.revalidate();
+//        out.repaint();
+        out.setVisible(true);
         
     }
     
@@ -308,10 +313,22 @@ class SelfOrganizingMap {
     }
     
     dataset.addSeries(series1);
+        //out.dispose();
+        out.revalidate();
+        out.repaint();
+        out.update(dataset);
+//        out.setVisible(true);
         
-        
-        output s = new output(dataset);
-        s.setVisible(true);
+       // out.revalidate();
+
+        try        
+        {
+            Thread.sleep(200);
+        } 
+        catch(InterruptedException ex) 
+        {
+            Thread.currentThread().interrupt();
+        };
     }
     
     /*
@@ -486,7 +503,7 @@ class SelfOrganizingMap {
         //see the comments of  the gaussianDistance() function
         double initialSigma = sigmaForHalfDiameterNeighborDistance(0.1);
         double finalSigma = 0.33; //closest neurons' neighbor values ~= 0.01                  
-        
+        System.out.println("train");
         //online training
         DataManipulation.shuffle(samples, 1000 * samples.length);        
         for (int loop = 0; loop <= steps; loop++) {
@@ -508,7 +525,7 @@ class SelfOrganizingMap {
         saveParameters("trained SOM model");
     }  
     
-    public static void main(String args[]) {        
+    public static void main(String [] args) {        
         int numOfSamples = 657;
         int features = 200;
         //transform the dataset in a condensed format based on the floating-point
@@ -520,11 +537,10 @@ class SelfOrganizingMap {
                 numOfSamples, features);
         //adjust the value range of each feature in the [0,1] interval
         data = DataManipulation.adjustPerColumnValueRange(data, true);
-                
         int dimX = 13;
         int dimY = 11;
-        SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false);        
-        som.reinitializeCodebookVectors(data);        
+        SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false); 
+        som.reinitializeCodebookVectors(data);    
         som.trainWorkbench(data);
     }
     

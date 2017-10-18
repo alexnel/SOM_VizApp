@@ -29,8 +29,14 @@ public class output extends javax.swing.JFrame {
      private static final long serialVersionUID = 6294689542092367723L;
 
   public output(XYDataset dataset) {
-    super("Neuron training");
-    initComponents();
+          super("Neuron training");
+          initComponents();
+          
+          update(dataset);
+  }
+  
+  public void update(XYDataset dataset)
+  {
     // Create dataset
     //XYDataset dataset = createDataset();
 
@@ -39,12 +45,10 @@ public class output extends javax.swing.JFrame {
         "Neuron training", 
         "X-Axis", "Y-Axis", dataset);
 
-    
     //Changes background color
     XYPlot plot = (XYPlot)chart.getPlot();
     plot.setBackgroundPaint(new Color(255,228,196));
-    
-   
+
     // Create Panel
     ChartPanel panel = new ChartPanel(chart);
     setContentPane(panel);
