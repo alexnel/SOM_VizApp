@@ -2,6 +2,9 @@ package barebone;
 
 import java.util.*;
 import java.io.*;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import java.lang.Math.*;
 
 class SelfOrganizingMap {
     
@@ -12,6 +15,12 @@ class SelfOrganizingMap {
     boolean hexagonalRectangular; //reduntant, used for convenience
     double U[][];
     double neuronPosition[][];
+    double umat[][];
+    int umatcolours[][];
+    int stepcount;
+    output out;
+    
+    //SelfOrganizingMap(){}
     
     /*
     Generic constructor for a SOM network. The dimensionality/number of the inputs
@@ -27,12 +36,15 @@ class SelfOrganizingMap {
     */
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow,
                 boolean hexagonalLattice, double standardDeviation, Random randomGenerator) {                
+        
         L = features;
         this.neuronsPerColumn = neuronsPerColumn;
         this.neuronsPerRow = neuronsPerRow;
         E = neuronsPerColumn*neuronsPerRow;
         hexagonalRectangular = hexagonalLattice;
         U = new double[L][E];
+        umat = new double[2*L-1][2*E-1];
+        umatcolours = new int[2*L-1][2*E-1];
         neuronPosition = new double[E][2];
 
         //initialization of the weights
@@ -83,6 +95,26 @@ class SelfOrganizingMap {
                 posY += step;
             }            
         }        
+        
+        XYSeriesCollection dataset = new XYSeriesCollection();
+
+    //Boys (Age,weight) series
+    XYSeries series1 = new XYSeries("Neurons");
+    
+    for (int i =0; i<E; i++)
+    {
+        series1.add(neuronPosition[i][0], neuronPosition[i][1]);
+    }
+    
+    dataset.addSeries(series1);
+        
+        out = new output(dataset);
+//        out.revalidate();
+//        out.repaint();
+        out.setVisible(true);
+
+    
+        
     }
     
     /*
@@ -256,7 +288,7 @@ class SelfOrganizingMap {
     /*
     The usual classical update rule of the SOM.
     */
-    void learningStep(double x[], double sigma, double learningRate) {
+    void learningStep(double x[], double sigma, double learningRate, int stepstop, int steps) {
         int c = -1;
         double hce[];
         double minimumDistance = Double.POSITIVE_INFINITY;
@@ -278,6 +310,53 @@ class SelfOrganizingMap {
                 U[l][e] += learningRate * hce[e] * (x[l] - U[l][e]);  
             }
         }
+    
+        
+    if (stepstop>stepcount)
+    {
+        System.out.println(Integer.toString(stepcount));
+        XYSeriesCollection dataset = new XYSeriesCollection();   
+    
+        XYSeries series1 = new XYSeries("Neurons");
+    
+        for (int i =0; i<E; i++)
+        {
+            series1.add(U[i][0], U[i][1]);
+        }
+    
+        dataset.addSeries(series1);
+    
+        try        
+        {
+            Thread.sleep(200);
+        } 
+        catch(InterruptedException ex) 
+        {
+            Thread.currentThread().interrupt();
+        };
+        
+        //out.dispose();
+        out.revalidate();
+        out.repaint();
+        out.update(dataset);
+//        out.setVisible(true);
+        
+       // out.revalidate();
+    }//end step count
+        stepcount++;
+        
+    if (stepcount==steps-1)
+    {
+        for(int row=0; row<L; row++)
+        {
+            for(int col=0; col<E; col++)
+            {
+                umat[2*row][2*col] = U[row][col];
+            }
+        }
+    }
+    
+    
     }
     
     /*
@@ -442,17 +521,17 @@ class SelfOrganizingMap {
         return te;
     }    
     
-    void trainWorkbench(double samples[][]) {
+    void trainWorkbench(double samples[][], int stepstop) {
         //all the following parameters are rough estimates mainly meant for
         //demonstrational purposes
         int epochs = 200;
         int steps = 7000;
+        stepcount=0;
         double initialLearningRate = 0.4;
         double finalLearningRate = 0.04;
         //see the comments of  the gaussianDistance() function
         double initialSigma = sigmaForHalfDiameterNeighborDistance(0.1);
         double finalSigma = 0.33; //closest neurons' neighbor values ~= 0.01                  
-        
         //online training
         DataManipulation.shuffle(samples, 1000 * samples.length);        
         for (int loop = 0; loop <= steps; loop++) {
@@ -460,7 +539,7 @@ class SelfOrganizingMap {
             double sigma = (finalSigma - initialSigma) * loop / steps + initialSigma;
             double learningRate = (finalLearningRate - initialLearningRate) * loop / steps +
                     initialLearningRate;
-            learningStep(x, sigma, learningRate);
+            learningStep(x, sigma, learningRate, stepstop, steps);
         } 
         
         // - or - //
@@ -474,32 +553,163 @@ class SelfOrganizingMap {
         saveParameters("trained SOM model");
     }  
     
-    public static void main(String args[]) {        
+    public static void main(String [] args) {        
+        Scanner scan = new Scanner(System.in);
+        
+        System.out.print("Enter  dataset file name: ");
+        String input = scan.nextLine();
+        
+        System.out.print("Do you wish to view training? (yes/no) ");
+        String watchtrain = scan.nextLine();
+        
+        int stepstop = 0;
+        if ("yes".equals(watchtrain))
+        {
+            System.out.print("How many steps of training do you wish to view? ");
+            stepstop = scan.nextInt();
+        }
+        
+        scan.close();
+        
         int numOfSamples = 657;
         int features = 200;
         //transform the dataset in a condensed format based on the floating-point
         //number specification
-        IOFiles.fileNormalForm("glycosyltransferase genes (data).txt",
+        IOFiles.fileNormalForm(input,
                 "data in double precision IEEE754");
         //load the data in an array, rows: samples, columns: features
         double data[][] = IOFiles.fileToArray("data in double precision IEEE754",
                 numOfSamples, features);
         //adjust the value range of each feature in the [0,1] interval
         data = DataManipulation.adjustPerColumnValueRange(data, true);
-                
         int dimX = 13;
         int dimY = 11;
-        SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false);
-        som.reinitializeCodebookVectors(data);        
-        som.trainWorkbench(data);
+        SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false); 
+        som.reinitializeCodebookVectors(data);    
+        som.trainWorkbench(data, stepstop);
+        som.makeUmat();
+        
     }
     
+    
+    void makeUmat()
+    {
+        //find the distances to make up the newly inserted indecies
+        for (int row=0; row<2*L-2; row++)
+        {
+            for (int col=0; col<2*E-2; col++)
+            {
+                if (row%2!=0)
+                {
+                    if (col%2==0)
+                    {   umat[row][col] = distance(umat[row-1][col],umat[row+1][col]);   }
+                    else
+                    {   umat[row][col] = distance(umat[row-1][col-1],umat[row+1][col+1]);   }
+                }
+                else
+                {
+                    if (col%2!=0)
+                    {   umat[row][col] = distance(umat[row][col-1],umat[row][col+1]);   }
+                }
+            }
+        }//end for loop
+        
+        //find the new old positions
+        for (int row=0; row<2*L-2; row++)
+        {
+            for (int col=0; col<2*E-2; col++)
+            {
+                if (row%2==0 && col%2==0)
+                {
+                    if (row==0)
+                    {
+                        if (col==0)
+                        {   umat[row][col] = ave3(umat[0][1], umat[1][1], umat[1][0]);  }
+                        else if (col==2*E-2)
+                        {   umat[row][col] = ave3(umat[row][col-1], umat[row+1][col], umat[row+1][col-1]);  }
+                        else
+                        {   umat[row][col] = ave5(umat[row][col-1], umat[row+1][col-1], umat[row+1][col],umat[row+1][col+1], umat[row][col+1]); }
+                    }//first row
+                    else if (row==2*E-2)
+                    {
+                        if (col==0)
+                        {   umat[row][col] = ave3(umat[row-1][col], umat[row-1][col+1], umat[row][col+1]);  }
+                        else if (col==2*E-2)
+                        {   umat[row][col] = ave3(umat[row][col-1], umat[row-1][col], umat[row-1][col-1]);  }
+                        else
+                        {   umat[row][col] = ave5(umat[row][col-1], umat[row-1][col-1], umat[row-1][col],umat[row-1][col+1], umat[row][col+1]); }
+                    }//last row
+                    else
+                    {
+                        if (col==0)
+                        {   umat[row][col] = ave5(umat[row-1][col], umat[row-1][col+1], umat[row][col+1],umat[row+1][col+1], umat[row+1][col]); }
+                        else if (col==2*E-2)
+                        {   umat[row][col] = ave5(umat[row-1][col], umat[row-1][col-1], umat[row][col-1],umat[row+1][col-1], umat[row+1][col]); }
+                        else
+                        {   umat[row][col] = ave8(umat[row][col-1], umat[row-1][col-1], umat[row-1][col],umat[row-1][col+1], umat[row][col+1], umat[row+1][col+1],umat[row+1][col], umat[row][col-1]);  }
+                    }//middle rows
+                }
+            }
+        }//end for loop
+        
+        
+        double maxcolour = umat[0][0];
+        double mincolour = umat[0][0];
+        
+        for (int row=0; row<2*L-2; row++)
+        {
+            for (int col=0; col<2*E-2; col++)
+            {
+                maxcolour = Math.max(maxcolour, umat[row][col]);
+                mincolour = Math.min(mincolour, umat[row][col]);
+            }
+        }
+        
+        double segment = (maxcolour-mincolour)/10;
+        for (int row=0; row<2*L-2; row++)
+        {
+            for (int col=0; col<2*E-2; col++)
+            {
+                umatcolours[row][col] = (int) Math.round(umat[row][col]/segment);
+            }
+        }
+        
+//        for (int row=0; row<5; row++)
+//        {
+//            for (int col=0; col<5; col++)
+//            {
+//                System.out.println(Integer.toString(umatcolours[row][col]));
+//            }
+//        }
+        
+    }
+    
+    double distance(double a, double b) {
+        double c;
+        
+        c = Math.abs(a-b);
+         
+        return c;
+    }
+    
+    double ave3(double a, double b, double c)
+    {
+        return ((a+b+c)/3);
+    }
+    double ave5(double a, double b, double c, double d, double e)
+    {
+        return ((a+b+c+d+e)/5);
+    }
+    double ave8(double a, double b, double c, double d, double e, double f, double g, double h)
+    {
+        return ((a+b+c+d+e+f+g+h)/8);
+    }
     
     
     /*
     ! THE FOLLOWING PIECES OF CODE ARE OLD AND REQUIRE (EXTENSIVE) REWORKING !
     */
-//    /*
+    /*
 //    Returns a matrix containing densities (that is, the number of input samples
 //    that are assigned to each neuron) necessary for the DensityMatrix graphic
 //    display. The variable returned consists of all the already computed densities
