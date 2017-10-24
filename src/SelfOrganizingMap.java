@@ -5,6 +5,7 @@ import java.io.*;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import java.lang.Math.*;
+import javax.swing.JFrame;
 
 class SelfOrganizingMap {
     
@@ -588,9 +589,21 @@ class SelfOrganizingMap {
         som.reinitializeCodebookVectors(data);    
         som.trainWorkbench(data, stepstop);
         som.makeUmat();
-        
+        som.display();
     }
     
+    void display()
+    {
+        int row = umatcolours.length;
+        int col = umatcolours[0].length;
+  
+        JFrame frame = new JFrame("Game");
+        GridDisplay map = new GridDisplay(umatcolours, row, col);
+        frame.add(map);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
     
     void makeUmat()
     {
