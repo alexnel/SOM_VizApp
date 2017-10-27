@@ -16,6 +16,7 @@ class SelfOrganizingMap {
     boolean hexagonalRectangular; //reduntant, used for convenience
     double U[][];
     double neuronPosition[][];
+    //double finalPos[][];
     double umat[][];
     int umatcolours[][];
     int stepcount;
@@ -44,8 +45,9 @@ class SelfOrganizingMap {
         E = neuronsPerColumn*neuronsPerRow;
         hexagonalRectangular = hexagonalLattice;
         U = new double[L][E];
-        umat = new double[2*L-1][2*E-1];
-        umatcolours = new int[2*L-1][2*E-1];
+        //finalPos = new double[neuronsPerRow][neuronsPerColumn];
+        umat = new double[2*neuronsPerRow-1][2*neuronsPerColumn-1];
+        umatcolours = new int[2*neuronsPerRow-1][2*neuronsPerColumn-1];
         neuronPosition = new double[E][2];
 
         //initialization of the weights
@@ -346,15 +348,25 @@ class SelfOrganizingMap {
     }//end step count
         stepcount++;
         
+        int count = 0;
     if (stepcount==steps-1)
     {
-        for(int row=0; row<L; row++)
-        {
-            for(int col=0; col<E; col++)
-            {
-                umat[2*row][2*col] = U[row][col];
-            }
-        }
+//        for(int row=0; row<L; row++)
+//        {
+//            for(int col=0; col<E; col++)
+//            {
+//                umat[2*row][2*col] = U[row][col];
+//            }
+//        }
+        
+//        for(int row=0; row<neuronsPerRow; row++)
+//        {
+//            for(int col=0; col<neuronsPerColumn; col++)
+//            {
+//                umat[2*row][2*col] = U[0][count];
+//                count++;
+//            }
+//        }
     }
     
     
@@ -606,31 +618,49 @@ class SelfOrganizingMap {
     }
     
     void makeUmat()
-    {
+    {        
+        /*
+        Fix the stuffs.
+        Need to fix what indicies are being taken for the distances.
+        take [0] and [1] of U and put into [1] of umat
+        then [1] and [2] of U to [3] of umat etc
+        */
+        
+//        for(int row=0; row<finalPos.length; row++)
+//        {
+//            for(int col=0; col<finalPos[0].length; col++)
+//            {
+//                umat[2*row][2*col] = finalPos[row][col];
+//            }
+//        }
+        
+        
         //find the distances to make up the newly inserted indecies
-        for (int row=0; row<2*L-2; row++)
+        for (int row=0; row<umat.length; row++)
         {
-            for (int col=0; col<2*E-2; col++)
+            for (int col=0; col<umat[0].length; col++)
             {
                 if (row%2!=0)
                 {
                     if (col%2==0)
-                    {   umat[row][col] = distance(umat[row-1][col],umat[row+1][col]);   }
+                    {   umat[row][col] = distance(row-1,col,row+1,col);   }
                     else
-                    {   umat[row][col] = distance(umat[row-1][col-1],umat[row+1][col+1]);   }
+                    {   umat[row][col] = distance(row-1,col-1,row+1,col+1);   }
                 }
                 else
                 {
                     if (col%2!=0)
-                    {   umat[row][col] = distance(umat[row][col-1],umat[row][col+1]);   }
+                    {   umat[row][col] = distance(row,col-1,row,col+1);   }
                 }
             }
         }//end for loop
         
+        
+        
         //find the new old positions
-        for (int row=0; row<2*L-2; row++)
+        for (int row=0; row<umat.length; row++)
         {
-            for (int col=0; col<2*E-2; col++)
+            for (int col=0; col<umat[0].length; col++)
             {
                 if (row%2==0 && col%2==0)
                 {
@@ -638,16 +668,16 @@ class SelfOrganizingMap {
                     {
                         if (col==0)
                         {   umat[row][col] = ave3(umat[0][1], umat[1][1], umat[1][0]);  }
-                        else if (col==2*E-2)
+                        else if (col==umat[0].length-1)
                         {   umat[row][col] = ave3(umat[row][col-1], umat[row+1][col], umat[row+1][col-1]);  }
                         else
                         {   umat[row][col] = ave5(umat[row][col-1], umat[row+1][col-1], umat[row+1][col],umat[row+1][col+1], umat[row][col+1]); }
                     }//first row
-                    else if (row==2*E-2)
+                    else if (row==umat.length-1)
                     {
                         if (col==0)
                         {   umat[row][col] = ave3(umat[row-1][col], umat[row-1][col+1], umat[row][col+1]);  }
-                        else if (col==2*E-2)
+                        else if (col==umat[0].length-1)
                         {   umat[row][col] = ave3(umat[row][col-1], umat[row-1][col], umat[row-1][col-1]);  }
                         else
                         {   umat[row][col] = ave5(umat[row][col-1], umat[row-1][col-1], umat[row-1][col],umat[row-1][col+1], umat[row][col+1]); }
@@ -656,7 +686,7 @@ class SelfOrganizingMap {
                     {
                         if (col==0)
                         {   umat[row][col] = ave5(umat[row-1][col], umat[row-1][col+1], umat[row][col+1],umat[row+1][col+1], umat[row+1][col]); }
-                        else if (col==2*E-2)
+                        else if (col==umat[0].length-1)
                         {   umat[row][col] = ave5(umat[row-1][col], umat[row-1][col-1], umat[row][col-1],umat[row+1][col-1], umat[row+1][col]); }
                         else
                         {   umat[row][col] = ave8(umat[row][col-1], umat[row-1][col-1], umat[row-1][col],umat[row-1][col+1], umat[row][col+1], umat[row+1][col+1],umat[row+1][col], umat[row][col-1]);  }
@@ -669,9 +699,9 @@ class SelfOrganizingMap {
         double maxcolour = umat[0][0];
         double mincolour = umat[0][0];
         
-        for (int row=0; row<2*L-2; row++)
+        for (int row=0; row<umat.length; row++)
         {
-            for (int col=0; col<2*E-2; col++)
+            for (int col=0; col<umat[0].length; col++)
             {
                 maxcolour = Math.max(maxcolour, umat[row][col]);
                 mincolour = Math.min(mincolour, umat[row][col]);
@@ -679,29 +709,44 @@ class SelfOrganizingMap {
         }
         
         double segment = (maxcolour-mincolour)/10;
-        for (int row=0; row<2*L-2; row++)
+        for (int row=0; row<umat.length; row++)
         {
-            for (int col=0; col<2*E-2; col++)
+            for (int col=0; col<umat[0].length; col++)
             {
-                umatcolours[row][col] = (int) Math.round(umat[row][col]/segment);
+                umatcolours[row][col] = 10 - (int) Math.round((umat[row][col]-mincolour)/segment);
             }
         }
         
-//        for (int row=0; row<5; row++)
-//        {
-//            for (int col=0; col<5; col++)
-//            {
-//                System.out.println(Integer.toString(umatcolours[row][col]));
-//            }
-//        }
+        for (int row=0; row<umat.length; row++)
+        {
+            for (int col=0; col<umat[0].length; col++)
+            {
+                System.out.println(Integer.toString(umatcolours[row][col]));
+            }
+        }
         
     }
     
-    double distance(double a, double b) {
-        double c;
+    double distance(int row1, int col1, int row2, int col2) {
+        double c=0;
+        //System.out.println("******** " + Integer.toString(row1) + Integer.toString(col1));
+        row1=row1/2;
+        row2=row2/2;
+        col1=col1/2;
+        col2=col2/2;
+        int index1=row1*neuronsPerRow+col1;
+        int index2=row2*neuronsPerRow+col2;        
+        //System.out.println("******** " + Integer.toString(row1) + Integer.toString(col1));
         
-        c = Math.abs(a-b);
+        for (int i=0; i<U.length; i++)
+        {
+            //System.out.println(Integer.toString(i) + " " + Integer.toString(index1) + Integer.toString(index2));
+            c+= Math.pow(U[i][index1]-U[i][index2],2);
+        }
+        
+        c = Math.sqrt(c);
          
+        System.out.println(Double.toString(c));
         return c;
     }
     
