@@ -4,6 +4,8 @@ import java.util.*;
 import java.io.*;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import java.lang.Math.*;
+import javax.swing.JFrame;
 
 class SelfOrganizingMap {
     
@@ -14,9 +16,14 @@ class SelfOrganizingMap {
     boolean hexagonalRectangular; //reduntant, used for convenience
     double U[][];
     double neuronPosition[][];
-    output out;
+    //double finalPos[][];
+    double umat[][];
+    double planecomp[][];
+    int stepcount;
+    GridDisplay out;
+    JFrame frame;
     
-    SelfOrganizingMap(){}
+    //SelfOrganizingMap(){}
     
     /*
     Generic constructor for a SOM network. The dimensionality/number of the inputs
@@ -31,7 +38,7 @@ class SelfOrganizingMap {
     Gaussian distribution is set.
     */
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow,
-                boolean hexagonalLattice, double standardDeviation, Random randomGenerator) {                
+                boolean hexagonalLattice, double standardDeviation, Random randomGenerator, int steps) {                
         
         L = features;
         this.neuronsPerColumn = neuronsPerColumn;
@@ -39,8 +46,10 @@ class SelfOrganizingMap {
         E = neuronsPerColumn*neuronsPerRow;
         hexagonalRectangular = hexagonalLattice;
         U = new double[L][E];
+        planecomp = new double[neuronsPerRow][neuronsPerColumn];
+        umat = new double[2*neuronsPerRow-1][2*neuronsPerColumn-1];
         neuronPosition = new double[E][2];
-
+        stepcount = steps;
         //initialization of the weights
         for (int l = 0; l < L; l++) {
             for (int e = 0; e < E; e++) {
@@ -90,22 +99,29 @@ class SelfOrganizingMap {
             }            
         }        
         
-        XYSeriesCollection dataset = new XYSeriesCollection();
+        if(stepcount>0)
+        {
+//            XYSeriesCollection dataset = new XYSeriesCollection();
+//
+//            //Boys (Age,weight) series
+//            XYSeries series1 = new XYSeries("Neurons");
+//
+//            for (int i =0; i<E; i++)
+//            {
+//                series1.add(neuronPosition[i][0], neuronPosition[i][1]);
+//            }
+//
+//            dataset.addSeries(series1);
 
-    //Boys (Age,weight) series
-    XYSeries series1 = new XYSeries("Neurons");
+            display(neuronPosition, "U-Matrix");
+            
+            //out = new output(dataset);
+    //        out.revalidate();
+    //        out.repaint();
+            //out.setVisible(true);
+        }
+
     
-    for (int i =0; i<E; i++)
-    {
-        series1.add(neuronPosition[i][0], neuronPosition[i][1]);
-    }
-    
-    dataset.addSeries(series1);
-        
-        out = new output(dataset);
-//        out.revalidate();
-//        out.repaint();
-        out.setVisible(true);
         
     }
     
@@ -116,7 +132,7 @@ class SelfOrganizingMap {
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow,
                 boolean hexagonalLattice, double standardDeviation) { 
         this(features, neuronsPerColumn, neuronsPerRow, hexagonalLattice,
-                standardDeviation, new Random());
+                standardDeviation, new Random(), 0);
     }
     
     /*
@@ -124,8 +140,8 @@ class SelfOrganizingMap {
     any other invocation of this constructor and also a standard deviation equal
     to 0.75.
     */
-    SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow, boolean hexagonalLattice) { 
-        this(features, neuronsPerColumn, neuronsPerRow, hexagonalLattice,  0.75, new Random());
+    SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow, boolean hexagonalLattice, int stepcount) { 
+        this(features, neuronsPerColumn, neuronsPerRow, hexagonalLattice,  0.75, new Random(), stepcount);
     }
     
     /*
@@ -134,7 +150,7 @@ class SelfOrganizingMap {
     to 0.75. The grid type is set to be the hexagonal one.
     */
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow) { 
-        this(features, neuronsPerColumn, neuronsPerRow, true,  0.75, new Random());
+        this(features, neuronsPerColumn, neuronsPerRow, true,  0.75, new Random(), 0);
     }
     
     /*
@@ -280,7 +296,7 @@ class SelfOrganizingMap {
     /*
     The usual classical update rule of the SOM.
     */
-    void learningStep(double x[], double sigma, double learningRate) {
+    void learningStep(double x[], double sigma, double learningRate, int stepstop, int steps) {
         int c = -1;
         double hce[];
         double minimumDistance = Double.POSITIVE_INFINITY;
@@ -302,25 +318,23 @@ class SelfOrganizingMap {
                 U[l][e] += learningRate * hce[e] * (x[l] - U[l][e]);  
             }
         }
+    
         
-    XYSeriesCollection dataset = new XYSeriesCollection();   
-    
-    XYSeries series1 = new XYSeries("Neurons");
-    
-    for (int i =0; i<E; i++)
+    if (stepstop>stepcount)
     {
-        series1.add(U[i][0], U[i][1]);
-    }
-    
-    dataset.addSeries(series1);
-        //out.dispose();
-        out.revalidate();
-        out.repaint();
-        out.update(dataset);
-//        out.setVisible(true);
         
-       // out.revalidate();
-
+//        System.out.println(Integer.toString(stepcount));
+//        XYSeriesCollection dataset = new XYSeriesCollection();   
+//    
+//        XYSeries series1 = new XYSeries("Neurons");
+//    
+//        for (int i =0; i<U.length; i++)
+//        {
+//            series1.add(U[i][0], U[i][1]);
+//        }
+//    
+//        dataset.addSeries(series1);
+//    
         try        
         {
             Thread.sleep(200);
@@ -329,6 +343,20 @@ class SelfOrganizingMap {
         {
             Thread.currentThread().interrupt();
         };
+                
+        
+        makeUmat();
+  
+//        //out.dispose();
+//        out.revalidate();
+//        out.repaint();
+//        out.update(dataset);
+//        out.setVisible(true);
+        
+       // out.revalidate();
+    }//end step count
+        stepcount++;    
+    
     }
     
     /*
@@ -493,17 +521,17 @@ class SelfOrganizingMap {
         return te;
     }    
     
-    void trainWorkbench(double samples[][]) {
+    void trainWorkbench(double samples[][], int stepstop, int epochs) {
         //all the following parameters are rough estimates mainly meant for
         //demonstrational purposes
-        int epochs = 200;
+        //int epochs = 200;
         int steps = 7000;
+        stepcount=0;
         double initialLearningRate = 0.4;
         double finalLearningRate = 0.04;
         //see the comments of  the gaussianDistance() function
         double initialSigma = sigmaForHalfDiameterNeighborDistance(0.1);
         double finalSigma = 0.33; //closest neurons' neighbor values ~= 0.01                  
-        System.out.println("train");
         //online training
         DataManipulation.shuffle(samples, 1000 * samples.length);        
         for (int loop = 0; loop <= steps; loop++) {
@@ -511,7 +539,7 @@ class SelfOrganizingMap {
             double sigma = (finalSigma - initialSigma) * loop / steps + initialSigma;
             double learningRate = (finalLearningRate - initialLearningRate) * loop / steps +
                     initialLearningRate;
-            learningStep(x, sigma, learningRate);
+            learningStep(x, sigma, learningRate, stepstop, steps);
         } 
         
         // - or - //
@@ -525,159 +553,447 @@ class SelfOrganizingMap {
         saveParameters("trained SOM model");
     }  
     
-    public static void main(String [] args) {        
-        int numOfSamples = 657;
-        int features = 200;
-        //transform the dataset in a condensed format based on the floating-point
-        //number specification
-        IOFiles.fileNormalForm("glycosyltransferase genes (data).txt",
-                "data in double precision IEEE754");
-        //load the data in an array, rows: samples, columns: features
-        double data[][] = IOFiles.fileToArray("data in double precision IEEE754",
-                numOfSamples, features);
-        //adjust the value range of each feature in the [0,1] interval
-        data = DataManipulation.adjustPerColumnValueRange(data, true);
-        int dimX = 13;
-        int dimY = 11;
-        SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false); 
-        som.reinitializeCodebookVectors(data);    
-        som.trainWorkbench(data);
+    public static void main(String [] args) throws IOException {        
+        Scanner scan = new Scanner(System.in);
+        
+        System.out.print("Enter dataset file name: ");
+        String input = scan.nextLine();
+        
+        System.out.print("Enter desired number of epochs: ");
+        int epochs = scan.nextInt();
+
+        
+//            System.out.print("Do you wish to view training? (yes/no) ");
+//            String watchtrain = scan.nextLine();
+
+            int stepstop = 0;
+//            if ("yes".equals(watchtrain))
+//            {
+//                System.out.print("How many steps of training do you wish to view? ");
+//                stepstop = scan.nextInt();
+//            }
+            
+
+            
+
+            //transform the dataset in a condensed format based on the floating-point
+            //number specification
+            IOFiles.fileNormalForm(input,
+                    "data in double precision IEEE754");
+
+            int numOfSamples = countLines(input);
+            int features = countFeatures(input);
+
+
+            //load the data in an array, rows: samples, columns: features
+            double data[][] = IOFiles.fileToArray("data in double precision IEEE754",
+                    numOfSamples, features);
+            //adjust the value range of each feature in the [0,1] interval
+            data = DataManipulation.adjustPerColumnValueRange(data, true);
+            int dimX = 21; //13;
+            int dimY = 17; //11;
+            SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false, stepstop); 
+            som.reinitializeCodebookVectors(data);    
+            som.trainWorkbench(data, stepstop, epochs);
+            
+        String menu = "";
+        
+        while (!menu.equalsIgnoreCase("x"))
+        {
+            System.out.println("\n---Menu---");
+            System.out.println("C - display Component Plane");
+            System.out.println("V - display Vector Activity Histogram");
+            System.out.println("U - display U-Matrix");
+//            if (features<4)
+//            {
+//                System.out.println("S - display Scatter Plot");
+//            }
+            System.out.println("X - exit program");
+            System.out.print("Enter in menu item you wish to view: ");
+            menu = scan.nextLine();
+            menu = scan.nextLine();
+            
+            
+            if (menu.equalsIgnoreCase("c"))
+            {
+                System.out.print("Enter the feature number you wish to view: ");
+                int feature = scan.nextInt();
+                if (feature>features)
+                {
+                    System.out.println("ERROR: feature out of bounds");
+                }
+                else
+                {
+                    som.compPlane(feature);
+                }
+            }
+            else if (menu.equalsIgnoreCase("v"))
+            {
+                System.out.print("Enter the number of the input vector you wish to view: ");
+                int vector = scan.nextInt();
+                if(vector>numOfSamples)
+                {
+                    System.out.println("ERROR: vector number out of bounds");
+                }
+                else
+                {
+                    som.vecAct(input, vector, features);
+                }
+            }
+            else if (menu.equalsIgnoreCase("u"))
+            {
+                som.makeUmat();
+            }
+//            else if (menu.equalsIgnoreCase("s"))
+//            {
+//                //scatter plot code
+//            }
+            else
+            {
+                System.out.println("Close all open visualisations to end program.");
+                return;
+            }
+            
+            
+//            if ("yes".equals(watchtrain))
+//            {
+//                som.makeUmat();
+//            }
+        
+        }//end while menu
+        scan.close();
     }
     
     
-    
-    /*
-    ! THE FOLLOWING PIECES OF CODE ARE OLD AND REQUIRE (EXTENSIVE) REWORKING !
-    */
-//    /*
-//    Returns a matrix containing densities (that is, the number of input samples
-//    that are assigned to each neuron) necessary for the DensityMatrix graphic
-//    display. The variable returned consists of all the already computed densities
-//    stored according to a transposelike logic:
-//     Q W E
-//      R T Y                       |  F  A  U  R  Q  |
-//     U I O  <- Density Matrix ->  |  G  S  I  T  W  |
-//      A S D                       |  H  D  O  Y  E  |
-//     F G H
-//    The employed input data (viz. samples) necessary for the corresponding
-//    computation, need to be passed.
-//    */
-//    int[][] densityMatrix(double data[][]) {
-//        int frequency[][] = new int[neuronsPerRow][neuronsPerColumn];
-//        int c;
+//    void redisplay(double[][] grid)
+//    {
+//        double maxcolour = grid[0][0];
+//        double mincolour = grid[0][0];
 //        
-//        for (int i = 0; i<neuronsPerRow; i++)
-//            for (int j = 0; j<neuronsPerColumn; j++)
-//                frequency[i][j] = 0;
-//        for (int x = 0; x<data.length; x++) {
-//            c = bestMatchingNeuron(data[x]);
-//            frequency[c%neuronsPerRow][c/neuronsPerRow]++;
-//        }
-//        return frequency;    
-//    }   
-//    /*
-//    Given the index of the column that contains the class information (i.e. 
-//    classPointer) and the total number of classes present, the density matrices
-//    of each individual class are displayed. It is important to note that the first
-//    class should be denoted as 0 (or 0.0) the second as 1 or (1.0) and so forth.
-//    */
-//    void displayClassDensityMatrices(double data[][], int classPointer,
-//                                     int numOfClasses) {
-//        int perClassCount[] = new int[numOfClasses];
-//        double classData[][];
-//        
-//        for (int i = 0; i<numOfClasses; i++)
-//            perClassCount[i] = 0;
-//        for (int i = 0; i<data.length; i++)
-//            perClassCount[(int)Math.round(data[i][classPointer])]++;                
-//        for (int i = 0; i<numOfClasses; i++) {
-//            classData = new double[perClassCount[i]][data[0].length-1];
-//            int ii = 0;
-//            for (int j = 0; j<data.length; j++)
-//                if (data[j][classPointer]==i) {
-//                    int jj = 0;
-//                    for (int k = 0; k<data[0].length; k++)
-//                        if (k!=classPointer)
-//                            classData[ii][jj++] = data[j][k];
-//                    ii++;                    
-//                }
-////            DensityMatrix.display(densityMatrix(classData));
-//        }   
-//    }    
-//    /*
-//    Returns a matrix containing (squared) Euclidean distances necessary for the
-//    DistanceMatrix graphic display. The variable returned consists of all the
-//    computed distances stored according to a transpose logic:
-//     Q W E
-//      R T Y                          |  F  A  U  R  Q  |
-//       U I O  <- Distance Matrix ->  |  G  S  I  T  W  |
-//      A S D                          |  H  D  O  Y  E  |
-//     F G H
-//    Between to neurons the stored value is their (squared) Euclidean distance.
-//    The value of each specific neuron is the average over all its adjacent
-//    (squared) Euclidean distances.
-//    Variable squaredEuclidean is used for selecting between squared and regular
-//    Euclidean distance norms.
-//    */
-//    double[][] distanceMatrix(boolean squaredEuclidean) {
-//        double sparseDistances[][] = new double[E][E];
-//        double euclideanDistance;
-//        double codebookDistance;
-//        int numOfNeighbors;
-//        double meanDistances[] = new double[E];
-//        double distances[][] = new double[2*neuronsPerRow-1][2*neuronsPerColumn-1];
-//             
-//        for(int i = 0; i<sparseDistances.length; i++)
-//            for(int j = 0; j<sparseDistances[i].length ;j++)
-//                sparseDistances[i][j] = Double.NEGATIVE_INFINITY;
-//        for(int i = 0; i<sparseDistances.length; i++) {
-//            for(int j = 0; j<sparseDistances[i].length; j++) {
-//                euclideanDistance = Math.hypot(neuronPosition[i][0]-neuronPosition[j][0],
-//                                               neuronPosition[i][1]-neuronPosition[j][1]);
-//                if(sparseDistances[i][j]==Double.NEGATIVE_INFINITY&&
-//                   euclideanDistance>0.99&&euclideanDistance<1.01) {
-//                    codebookDistance = 0.0;
-//                    for (int l = 0; l<L; l++)
-//                        codebookDistance += (U[l][i]-U[l][j])*(U[l][i]-U[l][j]);
-//                    if (!squaredEuclidean)
-//                        codebookDistance = Math.sqrt(codebookDistance);
-//                    sparseDistances[i][j] = sparseDistances[j][i] = codebookDistance;
-//                }
+//        for (int row=0; row<grid.length; row++)
+//        {
+//            for (int col=0; col<grid[0].length; col++)
+//            {
+//                maxcolour = Math.max(maxcolour, grid[row][col]);
+//                mincolour = Math.min(mincolour, grid[row][col]);
 //            }
 //        }
-//        for(int i = 0; i<sparseDistances.length; i++) {
-//           numOfNeighbors = 0;
-//           meanDistances[i] = 0.0;
-//           for(int j = 0; j<sparseDistances[0].length; j++) {
-//              if(sparseDistances[i][j]!=Double.NEGATIVE_INFINITY) {
-//                 numOfNeighbors++;
-//                 meanDistances[i] += sparseDistances[i][j];
-//              }
-//           }
-//           meanDistances[i] /= (double)numOfNeighbors;
-//        }
-//        for(int iter2 = 0;iter2<distances[0].length;iter2++) {
-//            for(int iter1 = 0;iter1<distances.length;iter1++) {
-//                if(iter1%2==0&&iter2%2==0)        
-//                    distances[iter1][iter2] = meanDistances[iter1/2+neuronsPerRow*iter2/2];
-//                else if(iter1%2==1&&iter2%2==0)          
-//                    distances[iter1][iter2] = sparseDistances[(iter1-1)/2+neuronsPerRow*iter2/2][(iter1+1)/2+neuronsPerRow*iter2/2];  
-//                else if(iter1%2==0&&iter2%2==1) 
-//                    distances[iter1][iter2] = sparseDistances[iter1/2+neuronsPerRow*(iter2-1)/2][iter1/2+neuronsPerRow*(iter2+1)/2];   
-//                else if(iter1%2==1&&iter2%2==1) {
-//                    if(iter2%4==1) 
-//                        distances[iter1][iter2] = sparseDistances[(iter1+1)/2+neuronsPerRow*(iter2-1)/2][(iter1-1)/2+neuronsPerRow*(iter2+1)/2];                        
-//                    else if(iter2%4==3)
-//                        distances[iter1][iter2] = sparseDistances[(iter1-1)/2+neuronsPerRow*(iter2-1)/2][(iter1+1)/2+neuronsPerRow*(iter2+1)/2];  
-//                }
+//        
+//        int [][] gridcolours = new int[grid.length][grid[0].length];
+//        
+//        //there are 10 colours to choose from in the scale, lighter is closer, darker further away
+//        double segment = (maxcolour-mincolour)/10; 
+//        for (int row=0; row<grid.length; row++)
+//        {
+//            for (int col=0; col<grid[0].length; col++)
+//            {
+//                gridcolours[row][col] = 10 - (int) Math.round((grid[row][col]-mincolour)/segment);
 //            }
 //        }
-//        return distances;
+//        
+//        int row = gridcolours.length;
+//        int col = gridcolours[0].length;
+//  
+//
+////        out.revalidate();
+////        out.repaint();
+////        out.setVisible(true);
+//            
+////        JFrame frame = new JFrame("Game");
+//        GridDisplay map = new GridDisplay(gridcolours, row, col);
+//        frame.revalidate();
+//        frame.repaint();
+//        frame.add(map);
+////        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        frame.pack();
+//        frame.setVisible(true);
 //    }
-    /*
-    ! IF THINGS WORK WELL ALL THE VISUALIZATION CODES MUST BE EXTENSIVELY REVISED !
-    */
+
+    
+    void display(double[][] grid, String title)
+    {
+        double maxcolour = grid[0][0];
+        double mincolour = grid[0][0];
+        
+        for (int row=0; row<grid.length; row++)
+        {
+            for (int col=0; col<grid[0].length; col++)
+            {
+                maxcolour = Math.max(maxcolour, grid[row][col]);
+                mincolour = Math.min(mincolour, grid[row][col]);
+            }
+        }
+        
+        int [][] gridcolours = new int[grid.length][grid[0].length];
+        
+        //there are 10 colours to choose from in the scale, lighter is closer, darker further away
+        double segment = (maxcolour-mincolour)/10; 
+        for (int row=0; row<grid.length; row++)
+        {
+            for (int col=0; col<grid[0].length; col++)
+            {
+                gridcolours[row][col] = 10 - (int) Math.round((grid[row][col]-mincolour)/segment);
+            }
+        }
+        
+        int row = gridcolours.length;
+        int col = gridcolours[0].length;
+  
+        frame = new JFrame(title);
+        out = new GridDisplay(gridcolours, row, col);
+        frame.add(out);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+    
+    void compPlane(int feature)
+    {
+        int count = 0;
+        for (int row=0; row<neuronsPerRow; row++)
+        {
+            for (int col=0; col<neuronsPerColumn; col++)
+            {
+                planecomp[row][col] = U[feature][count];
+                count++;
+            }
+        }
+        display(planecomp, "Component Plane");
+    }
     
     
+    void vecAct(String filename, int vector, int features) throws IOException
+    {
+        double[] inputVector = getLine(filename, vector, features);
+        double[][] activity = new double[neuronsPerRow][neuronsPerColumn];
+        for (int row=0; row<neuronsPerRow; row++)
+        {
+            for (int col=0; col<neuronsPerColumn; col++)
+            {
+                activity[row][col] = distanceVect(row,col,inputVector);
+            }
+        }
+        display(activity, "Vector Activity Histogram");
+    }
+    
+    /* calculate the distance between two vectors, input row and col are from umat 
+    space and then converted to the U array index */
+    double distanceVect(int row1, int col1, double[]vector) {
+        double c=0;
+        int index1=row1*neuronsPerRow+col1;       
+        
+        for (int i=0; i<U.length; i++)
+        {
+            c+= Math.pow(U[i][index1]-vector[i],2);
+        }
+        
+        c = Math.sqrt(c);
+        
+        return c;
+    }
+    
+    void makeUmat()
+    {        
+        //find the distances to make up the newly inserted indecies
+        for (int row=0; row<umat.length; row++)
+        {
+            for (int col=0; col<umat[0].length; col++)
+            {
+                if (row%2!=0)
+                {
+                    if (col%2==0)
+                    {   umat[row][col] = distance(row-1,col,row+1,col);   }
+                    else
+                    {   umat[row][col] = distance(row-1,col-1,row+1,col+1);   }
+                }
+                else
+                {
+                    if (col%2!=0)
+                    {   umat[row][col] = distance(row,col-1,row,col+1);   }
+                }
+            }
+        }//end for loop
+        
+        
+        
+        //find the new old positions
+        for (int row=0; row<umat.length; row++)
+        {
+            for (int col=0; col<umat[0].length; col++)
+            {
+                if (row%2==0 && col%2==0)
+                {
+                    if (row==0)
+                    {
+                        if (col==0)
+                        {   umat[row][col] = ave3(umat[0][1], umat[1][1], umat[1][0]);  }
+                        else if (col==umat[0].length-1)
+                        {   umat[row][col] = ave3(umat[row][col-1], umat[row+1][col], umat[row+1][col-1]);  }
+                        else
+                        {   umat[row][col] = ave5(umat[row][col-1], umat[row+1][col-1], umat[row+1][col],umat[row+1][col+1], umat[row][col+1]); }
+                    }//first row
+                    else if (row==umat.length-1)
+                    {
+                        if (col==0)
+                        {   umat[row][col] = ave3(umat[row-1][col], umat[row-1][col+1], umat[row][col+1]);  }
+                        else if (col==umat[0].length-1)
+                        {   umat[row][col] = ave3(umat[row][col-1], umat[row-1][col], umat[row-1][col-1]);  }
+                        else
+                        {   umat[row][col] = ave5(umat[row][col-1], umat[row-1][col-1], umat[row-1][col],umat[row-1][col+1], umat[row][col+1]); }
+                    }//last row
+                    else
+                    {
+                        if (col==0)
+                        {   umat[row][col] = ave5(umat[row-1][col], umat[row-1][col+1], umat[row][col+1],umat[row+1][col+1], umat[row+1][col]); }
+                        else if (col==umat[0].length-1)
+                        {   umat[row][col] = ave5(umat[row-1][col], umat[row-1][col-1], umat[row][col-1],umat[row+1][col-1], umat[row+1][col]); }
+                        else
+                        {   umat[row][col] = ave8(umat[row][col-1], umat[row-1][col-1], umat[row-1][col],umat[row-1][col+1], umat[row][col+1], umat[row+1][col+1],umat[row+1][col], umat[row][col-1]);  }
+                    }//middle rows
+                }
+            }
+        }//end for loop
+        
+        display(umat, "U-matrix");
+    }
+    
+    /* calculate the distance between two vectors, input row and col are from umat 
+    space and then converted to the U array index */
+    double distance(int row1, int col1, int row2, int col2) {
+        double c=0;
+        row1=row1/2;
+        row2=row2/2;
+        col1=col1/2;
+        col2=col2/2;
+        int index1=row1*neuronsPerRow+col1;
+        int index2=row2*neuronsPerRow+col2;        
+        
+        for (int i=0; i<U.length; i++)
+        {
+            c+= Math.pow(U[i][index1]-U[i][index2],2);
+        }
+        
+        c = Math.sqrt(c);
+        
+        return c;
+    }
+    
+    /* find average of surrounding blocks, based on where in the array the block 
+    lies a different ave method will be used */
+    double ave3(double a, double b, double c)
+    {
+        return ((a+b+c)/3);
+    }
+    double ave5(double a, double b, double c, double d, double e)
+    {
+        return ((a+b+c+d+e)/5);
+    }
+    double ave8(double a, double b, double c, double d, double e, double f, double g, double h)
+    {
+        return ((a+b+c+d+e+f+g+h)/8);
+    }
+    
+     public static int countLines(String filename) throws IOException 
+    {
+        InputStream is = new BufferedInputStream(new FileInputStream(filename));
+        try {
+            byte[] c = new byte[1024];
+            int count = 0;
+            int readChars = 0;
+            boolean endsWithoutNewLine = false;
+            while ((readChars = is.read(c)) != -1) {
+                for (int i = 0; i < readChars; ++i) {
+                    if (c[i] == '\n')
+                        ++count;
+                }
+                endsWithoutNewLine = (c[readChars - 1] != '\n');
+            }
+            if(endsWithoutNewLine) {
+                ++count;
+            } 
+            return count;
+        } finally {
+            is.close();
+        }
+    }
+    
+    public static double[] getLine(String filename, int lineNumber, int features) throws IOException 
+    {
+        double[] vector = new double[features];
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) 
+        {
+            String line = "";
+            for (int i=0; i<lineNumber; i++)
+            {
+                line=br.readLine();
+            }
+            String[] splitLine;
+            if (line != null) 
+            {
+                if (line.contains("\t"))
+                {
+                    splitLine = line.split("\t");
+                }
+                else if (line.contains(" "))
+                {
+                    splitLine = line.split(" ");
+                }
+                else if (line.contains("\r"))
+                {
+                    splitLine = line.split("\r");
+                }
+                else
+                {
+                    splitLine = new String[0];
+                }
+            }
+            else
+            {
+                splitLine = new String[0];
+            }
+            
+            for(int f=0; f<splitLine.length; f++)
+            {
+                vector[f] = Double.parseDouble(splitLine[f]);
+            }
+            
+            return vector;
+        }
+    }
+    
+    public static int countFeatures(String filename) throws IOException 
+    {
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) 
+        {
+            String line = br.readLine();
+            String[] splitLine;
+            if (line != null) 
+            {
+                if (line.contains("\t"))
+                {
+                    splitLine = line.split("\t");
+                }
+                else if (line.contains(" "))
+                {
+                    splitLine = line.split(" ");
+                }
+                else if (line.contains("\r"))
+                {
+                    splitLine = line.split("\r");
+                }
+                else
+                {
+                    splitLine = new String[0];
+                }
+            }
+            else
+            {
+                splitLine = new String[0];
+            }
+            
+            int count = splitLine.length;
+            return count;
+        }
+    }
     
 }
