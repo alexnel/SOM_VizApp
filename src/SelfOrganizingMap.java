@@ -1,11 +1,16 @@
 package barebone;
 
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.util.*;
 import java.io.*;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import java.lang.Math.*;
+import javax.swing.BoxLayout;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 class SelfOrganizingMap {
     
@@ -20,8 +25,11 @@ class SelfOrganizingMap {
     double umat[][];
     double planecomp[][];
     int stepcount;
-    GridDisplay out;
+    output out;
+    GridDisplay gridOut;
     JFrame frame;
+    int trainOne;
+    int trainTwo;
     
     //SelfOrganizingMap(){}
     
@@ -38,7 +46,7 @@ class SelfOrganizingMap {
     Gaussian distribution is set.
     */
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow,
-                boolean hexagonalLattice, double standardDeviation, Random randomGenerator, int steps) {                
+                boolean hexagonalLattice, double standardDeviation, Random randomGenerator, int steps, int trainone, int traintwo) {                
         
         L = features;
         this.neuronsPerColumn = neuronsPerColumn;
@@ -50,6 +58,9 @@ class SelfOrganizingMap {
         umat = new double[2*neuronsPerRow-1][2*neuronsPerColumn-1];
         neuronPosition = new double[E][2];
         stepcount = steps;
+        trainOne = trainone;
+        trainTwo = traintwo;
+        
         //initialization of the weights
         for (int l = 0; l < L; l++) {
             for (int e = 0; e < E; e++) {
@@ -101,24 +112,23 @@ class SelfOrganizingMap {
         
         if(stepcount>0)
         {
-//            XYSeriesCollection dataset = new XYSeriesCollection();
-//
-//            //Boys (Age,weight) series
-//            XYSeries series1 = new XYSeries("Neurons");
-//
-//            for (int i =0; i<E; i++)
-//            {
-//                series1.add(neuronPosition[i][0], neuronPosition[i][1]);
-//            }
-//
-//            dataset.addSeries(series1);
+            XYSeriesCollection dataset = new XYSeriesCollection();
 
-            display(neuronPosition, "U-Matrix");
+
+            XYSeries series1 = new XYSeries("Neurons");
             
-            //out = new output(dataset);
-    //        out.revalidate();
-    //        out.repaint();
-            //out.setVisible(true);
+            for (double[] neuronPosition1 : neuronPosition) {
+                series1.add(neuronPosition1[0], neuronPosition1[1]);
+            }
+
+            dataset.addSeries(series1);
+
+            //display(neuronPosition, "U-Matrix");
+            
+            out = new output(dataset);
+//            out.revalidate();
+//            out.repaint();
+            out.setVisible(true);
         }
 
     
@@ -132,7 +142,7 @@ class SelfOrganizingMap {
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow,
                 boolean hexagonalLattice, double standardDeviation) { 
         this(features, neuronsPerColumn, neuronsPerRow, hexagonalLattice,
-                standardDeviation, new Random(), 0);
+                standardDeviation, new Random(), 0, 0, 1);
     }
     
     /*
@@ -140,8 +150,8 @@ class SelfOrganizingMap {
     any other invocation of this constructor and also a standard deviation equal
     to 0.75.
     */
-    SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow, boolean hexagonalLattice, int stepcount) { 
-        this(features, neuronsPerColumn, neuronsPerRow, hexagonalLattice,  0.75, new Random(), stepcount);
+    SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow, boolean hexagonalLattice, int stepcount, int trainone, int traintwo) { 
+        this(features, neuronsPerColumn, neuronsPerRow, hexagonalLattice,  0.75, new Random(), stepcount, trainone, traintwo);
     }
     
     /*
@@ -150,7 +160,7 @@ class SelfOrganizingMap {
     to 0.75. The grid type is set to be the hexagonal one.
     */
     SelfOrganizingMap(int features, int neuronsPerColumn, int neuronsPerRow) { 
-        this(features, neuronsPerColumn, neuronsPerRow, true,  0.75, new Random(), 0);
+        this(features, neuronsPerColumn, neuronsPerRow, true,  0.75, new Random(), 0, 0, 1);
     }
     
     /*
@@ -323,18 +333,18 @@ class SelfOrganizingMap {
     if (stepstop>stepcount)
     {
         
-//        System.out.println(Integer.toString(stepcount));
-//        XYSeriesCollection dataset = new XYSeriesCollection();   
-//    
-//        XYSeries series1 = new XYSeries("Neurons");
-//    
-//        for (int i =0; i<U.length; i++)
-//        {
-//            series1.add(U[i][0], U[i][1]);
-//        }
-//    
-//        dataset.addSeries(series1);
-//    
+        System.out.println(Integer.toString(stepcount));
+        XYSeriesCollection dataset = new XYSeriesCollection();   
+    
+        XYSeries series1 = new XYSeries("Neurons");
+    
+        for (int i =0; i<U.length; i++)
+        {
+            series1.add(U[i][trainOne], U[i][trainTwo]);
+        }
+    
+        dataset.addSeries(series1);
+        
         try        
         {
             Thread.sleep(200);
@@ -343,15 +353,12 @@ class SelfOrganizingMap {
         {
             Thread.currentThread().interrupt();
         };
-                
-        
-        makeUmat();
   
-//        //out.dispose();
-//        out.revalidate();
-//        out.repaint();
-//        out.update(dataset);
-//        out.setVisible(true);
+        //out.dispose();
+        out.revalidate();
+        out.repaint();
+        out.update(dataset);
+        out.setVisible(true);
         
        // out.revalidate();
     }//end step count
@@ -521,10 +528,10 @@ class SelfOrganizingMap {
         return te;
     }    
     
-    void trainWorkbench(double samples[][], int stepstop) {
+    void trainWorkbench(double samples[][], int stepstop, int epochs) {
         //all the following parameters are rough estimates mainly meant for
         //demonstrational purposes
-        int epochs = 200;
+        //int epochs = 200;
         int steps = 7000;
         stepcount=0;
         double initialLearningRate = 0.4;
@@ -556,52 +563,80 @@ class SelfOrganizingMap {
     public static void main(String [] args) throws IOException {        
         Scanner scan = new Scanner(System.in);
         
-        System.out.print("Enter  dataset file name: ");
+        System.out.print("Enter dataset file name: ");
         String input = scan.nextLine();
         
+        //System.out.print("Enter desired number of epochs: ");
+        int epochs = 200;//scan.nextInt();          
+        
+        
+        
+        //transform the dataset in a condensed format based on the floating-point
+        //number specification
+        IOFiles.fileNormalForm(input,
+                "data in double precision IEEE754");
+
+        int numOfSamples = countLines(input);
+        int features = countFeatures(input);
+
+                System.out.print("Do you wish to view training? (yes/no) ");
+        String watchtrain = scan.nextLine();
+
+        System.out.println(watchtrain);
+
+        int stepstop = 0;
+        int trainone = 0;
+        int traintwo = 1;
+        if (watchtrain.equalsIgnoreCase("yes"))
+        {
+            System.out.print("How many steps of training do you wish to view? ");
+            stepstop = scan.nextInt();
+            System.out.print("What is the number of the first feature you wish to visualise? ");
+            trainone = scan.nextInt();
+            System.out.print("What is the number of the second feature you wish to visualise? ");
+            traintwo = scan.nextInt();
+            
+            if (trainone>features)
+            {
+                System.out.println("ERROR: feature one out of bounds, set to default 0.");
+                trainone = 0;
+            }
+            if (traintwo>features)
+            {
+                System.out.println("ERROR: feature two out of bounds, set to default 1.");
+                trainone = 1;
+            }
+        }
+        
+
+        //load the data in an array, rows: samples, columns: features
+        double data[][] = IOFiles.fileToArray("data in double precision IEEE754",
+                numOfSamples, features);
+        //adjust the value range of each feature in the [0,1] interval
+        data = DataManipulation.adjustPerColumnValueRange(data, true);
+        int dimX = 21; //13;
+        int dimY = 17; //11;
+        SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false, stepstop, trainone, traintwo); 
+        som.reinitializeCodebookVectors(data);    
+        som.trainWorkbench(data, stepstop, epochs);
+        
+            
         String menu = "";
         
         while (!menu.equalsIgnoreCase("x"))
         {
-            System.out.println("Menu");
+            System.out.println("\n---Menu---");
             System.out.println("C - display Component Plane");
-            System.out.println("V - display Component Plane");
+            System.out.println("V - display Vector Activity Histogram");
             System.out.println("U - display U-Matrix");
+//            if (features<4)
+//            {
+//                System.out.println("S - display Scatter Plot");
+//            }
             System.out.println("X - exit program");
             System.out.print("Enter in menu item you wish to view: ");
             menu = scan.nextLine();
-
-        
-//            System.out.print("Do you wish to view training? (yes/no) ");
-//            String watchtrain = scan.nextLine();
-
-            int stepstop = 0;
-//            if ("yes".equals(watchtrain))
-//            {
-//                System.out.print("How many steps of training do you wish to view? ");
-//                stepstop = scan.nextInt();
-//            }
-            
-
-            //transform the dataset in a condensed format based on the floating-point
-            //number specification
-            IOFiles.fileNormalForm(input,
-                    "data in double precision IEEE754");
-
-            int numOfSamples = countLines(input);
-            int features = countFeatures(input);
-
-
-            //load the data in an array, rows: samples, columns: features
-            double data[][] = IOFiles.fileToArray("data in double precision IEEE754",
-                    numOfSamples, features);
-            //adjust the value range of each feature in the [0,1] interval
-            data = DataManipulation.adjustPerColumnValueRange(data, true);
-            int dimX = 21; //13;
-            int dimY = 17; //11;
-            SelfOrganizingMap som = new SelfOrganizingMap(features, dimX, dimY, false, stepstop); 
-            som.reinitializeCodebookVectors(data);    
-            som.trainWorkbench(data, stepstop);
+            menu = scan.nextLine();
             
             
             if (menu.equalsIgnoreCase("c"))
@@ -610,10 +645,12 @@ class SelfOrganizingMap {
                 int feature = scan.nextInt();
                 if (feature>features)
                 {
-                    System.out.print("ERROR: feature out of bounds");
-                    return;
+                    System.out.println("ERROR: feature out of bounds");
                 }
-                som.compPlane(feature);
+                else
+                {
+                    som.compPlane(feature);
+                }
             }
             else if (menu.equalsIgnoreCase("v"))
             {
@@ -621,74 +658,31 @@ class SelfOrganizingMap {
                 int vector = scan.nextInt();
                 if(vector>numOfSamples)
                 {
-                    System.out.print("ERROR: vector number out of bounds");
-                    return;
+                    System.out.println("ERROR: vector number out of bounds");
                 }
-                som.vecAct(input, vector, features);
+                else
+                {
+                    som.vecAct(input, vector, features);
+                }
             }
             else if (menu.equalsIgnoreCase("u"))
             {
                 som.makeUmat();
             }
+//            else if (menu.equalsIgnoreCase("s"))
+//            {
+//                //scatter plot code
+//            }
             else
             {
+                System.out.println("Close all open visualisations to end program.");
                 return;
             }
-            
-            
-//            if ("yes".equals(watchtrain))
-//            {
-//                som.makeUmat();
-//            }
         
         }//end while menu
         scan.close();
     }
-    
-    
-//    void redisplay(double[][] grid)
-//    {
-//        double maxcolour = grid[0][0];
-//        double mincolour = grid[0][0];
-//        
-//        for (int row=0; row<grid.length; row++)
-//        {
-//            for (int col=0; col<grid[0].length; col++)
-//            {
-//                maxcolour = Math.max(maxcolour, grid[row][col]);
-//                mincolour = Math.min(mincolour, grid[row][col]);
-//            }
-//        }
-//        
-//        int [][] gridcolours = new int[grid.length][grid[0].length];
-//        
-//        //there are 10 colours to choose from in the scale, lighter is closer, darker further away
-//        double segment = (maxcolour-mincolour)/10; 
-//        for (int row=0; row<grid.length; row++)
-//        {
-//            for (int col=0; col<grid[0].length; col++)
-//            {
-//                gridcolours[row][col] = 10 - (int) Math.round((grid[row][col]-mincolour)/segment);
-//            }
-//        }
-//        
-//        int row = gridcolours.length;
-//        int col = gridcolours[0].length;
-//  
-//
-////        out.revalidate();
-////        out.repaint();
-////        out.setVisible(true);
-//            
-////        JFrame frame = new JFrame("Game");
-//        GridDisplay map = new GridDisplay(gridcolours, row, col);
-//        frame.revalidate();
-//        frame.repaint();
-//        frame.add(map);
-////        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        frame.pack();
-//        frame.setVisible(true);
-//    }
+
 
     
     void display(double[][] grid, String title)
@@ -719,10 +713,23 @@ class SelfOrganizingMap {
         
         int row = gridcolours.length;
         int col = gridcolours[0].length;
-  
+        
+        
+        
+        String range = "Black = " + Double.toString(maxcolour) + ", White = " + Double.toString(mincolour);
+        
         frame = new JFrame(title);
-        out = new GridDisplay(gridcolours, row, col);
-        frame.add(out);
+        gridOut = new GridDisplay(gridcolours, row, col);
+        
+        JPanel panel = new JPanel();
+        JLabel minmax = new JLabel(range);
+        minmax.setFont(new Font("Verdana",1,14));
+        panel.add(minmax);
+        
+        
+        frame.setLayout(new GridLayout(2,1));
+        frame.add(gridOut);
+        frame.add(panel);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
@@ -759,7 +766,8 @@ class SelfOrganizingMap {
     
     /* calculate the distance between two vectors, input row and col are from umat 
     space and then converted to the U array index */
-    double distanceVect(int row1, int col1, double[]vector) {
+    double distanceVect(int row1, int col1, double[]vector) 
+    {
         double c=0;
         int index1=row1*neuronsPerRow+col1;       
         
@@ -840,7 +848,8 @@ class SelfOrganizingMap {
     
     /* calculate the distance between two vectors, input row and col are from umat 
     space and then converted to the U array index */
-    double distance(int row1, int col1, int row2, int col2) {
+    double distance(int row1, int col1, int row2, int col2) 
+    {
         double c=0;
         row1=row1/2;
         row2=row2/2;
