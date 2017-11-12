@@ -1,2 +1,3 @@
 # SOM_VizApp
-Application to visualise the operation of a SOM
+
+Go to https://github.com/alexnel/VisApp for final project
